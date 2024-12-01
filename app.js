@@ -6,13 +6,29 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Connecting the Database
-const db = mysql.createPool({
-    host: process.env.DB_LOCALHOST,
-    user: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE,
-});
+const dbUrl=`mysql://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT || 3306}/${process.env.DB_DATABASE}`;
+const db = mysql.createPool(dbUrl);
 
+const createTableIfNotExists = async () => {
+    const createTableQuery = `
+        CREATE TABLE IF NOT EXISTS students (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            address VARCHAR(255),
+            latitude DOUBLE,
+            longitude DOUBLE
+        );
+    `;
+
+    try {
+        const [result] = await db.query(createTableQuery);
+        console.log("Table created or already exists:", result);
+    } catch (err) {
+        console.error("Error creating table:", err);
+    }
+};
+
+createTableIfNotExists();
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -20,6 +36,7 @@ const port = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
 
 //Function To calculate the distance between the two locations
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
